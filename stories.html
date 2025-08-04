@@ -88,13 +88,29 @@
       async function loadStories() {
         const container = document.getElementById("storiesContainer");
         try {
-          const res = await fetch("/stories");
-          const stories = await res.json();
+          // --- EDITED PART START ---
+          
+          // Step 1: Fetch the manifest file that lists all story JSON files.
+          const manifestRes = await fetch("/stories/_manifest.json");
+          if (!manifestRes.ok) {
+            throw new Error(`HTTP error! status: ${manifestRes.status}`);
+          }
+          const storyFilenames = await manifestRes.json();
 
-          if (stories.length === 0) {
+          if (storyFilenames.length === 0) {
             container.innerHTML = "<p class='text-center text-gray-600 col-span-full'>No stories submitted yet.</p>";
             return;
           }
+
+          // Step 2: Create a fetch promise for each story file.
+          const storyPromises = storyFilenames.map(filename =>
+            fetch(`/stories/${filename}`).then(res => res.json())
+          );
+
+          // Step 3: Wait for all story files to be fetched.
+          const stories = await Promise.all(storyPromises);
+          
+          // --- EDITED PART END ---
 
           stories.reverse().forEach((story, index) => {
             const card = document.createElement("div");
@@ -102,10 +118,9 @@
             card.setAttribute("data-aos", "fade-up");
             card.setAttribute("data-aos-delay", index * 100);
 
+            // Using timestamp from the JSON file itself
             const date = new Date(story.timestamp).toLocaleString("en-IN", {
-              day: 'numeric', month: 'short', year: 'numeric',
-              hour: 'numeric', minute: 'numeric', second: 'numeric',
-              hour12: true
+              day: 'numeric', month: 'short', year: 'numeric'
             });
 
             card.innerHTML = `
@@ -153,10 +168,10 @@
     <!-- Quick Links -->
     <div>
       <ul class="space-y-1 text-gray-400">
-        <li><a href="#home" class="hover:text-white transition">Home</a></li>
-        <li><a href="#about" class="hover:text-white transition">About You</a></li>
-        <li><a href="#pricing" class="hover:text-white transition">Pricing</a></li>
-        <li><a href="#share-story" class="hover:text-white transition">Share Your Story</a></li>
+        <li><a href="/index.html#home" class="hover:text-white transition">Home</a></li>
+        <li><a href="/index.html#about" class="hover:text-white transition">About You</a></li>
+        <li><a href="/index.html#pricing" class="hover:text-white transition">Pricing</a></li>
+        <li><a href="/index.html#share-story" class="hover:text-white transition">Share Your Story</a></li>
       </ul>
     </div>
 
@@ -173,7 +188,7 @@
 
   <!-- Bottom Line -->
   <div class="border-t border-gray-700 mt-12 pt-6 text-center text-sm text-gray-500">
-    &copy; 2025 Space of Purification Global. All rights reserved.
+    © 2025 Space of Purification Global. All rights reserved.
   </div>
 </footer>
 
